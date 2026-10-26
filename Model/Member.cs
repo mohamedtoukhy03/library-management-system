@@ -19,7 +19,7 @@ public class Member
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
         Id = id;
-        Name = name;
+        Name = name.Trim();
         Type = type;
     }
 

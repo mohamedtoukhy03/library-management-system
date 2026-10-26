@@ -2,18 +2,15 @@ namespace LibraryManagementSystem.Service;
 
 using LibraryManagementSystem.Model;
 using LibraryManagementSystem.Repository;
-using LibraryManagementSystem.Validation;
 
 public class LoanService(
     IBookRepository bookRepository,
     IMemberRepository memberRepository,
-    ILoanRepository loanRepository,
-    IBorrowOperationValidator borrowValidator) : ILoanService
+    ILoanRepository loanRepository) : ILoanService
 {
     private readonly IBookRepository _bookRepo = bookRepository;
     private readonly IMemberRepository _memberRepo = memberRepository;
     private readonly ILoanRepository _loanRepo = loanRepository;
-    private readonly IBorrowOperationValidator _borrowValidator = borrowValidator;
     private int _nextLoanId = 1;
 
     public bool TryBorrowBook(int memberId, int bookId, out string message)
@@ -32,19 +29,41 @@ public class LoanService(
             return false;
         }
 
-        var activeLoans = _loanRepo.GetActiveByMemberId(memberId);
-        var validation = _borrowValidator.Validate(member, book, activeLoans);
-        if (!validation.IsValid)
-        {
-            message = validation.ErrorMessage ?? "";
+        if (!CanBorrow(member, book, out message))
             return false;
-        }
 
         var loan = new Loan(_nextLoanId++, book.Id, member.Id, DateTime.Now);
         book.MarkAsBorrowed();
         _loanRepo.Add(loan);
 
         message = $"'{book.Title}' successfully borrowed by {member.Name}! Due date: {loan.DueDate:yyyy-MM-dd}.";
+        return true;
+    }
+
+    private bool CanBorrow(Member member, Book book, out string reason)
+    {
+        if (!book.IsAvailable)
+        {
+            reason = $"'{book.Title}' is already borrowed.";
+            return false;
+        }
+
+        var memberActiveLoans = _loanRepo.GetActiveByMemberId(member.Id);
+
+        if (memberActiveLoans.Any(loan => loan.IsOverdue))
+        {
+            reason = $"Borrowing rejected: {member.Name} currently has overdue book.";
+            return false;
+        }
+
+        int activeCount = memberActiveLoans.Count(loan => !loan.IsReturned);
+        if (activeCount >= member.MaxLoans)
+        {
+            reason = $"Borrowing rejected: {member.Name} has reached the limit of {member.MaxLoans} active loans.";
+            return false;
+        }
+
+        reason = string.Empty;
         return true;
     }
 

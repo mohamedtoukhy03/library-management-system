@@ -13,8 +13,8 @@ public class Book
         ArgumentException.ThrowIfNullOrWhiteSpace(author);
 
         Id = id;
-        Title = title;
-        Author = author;
+        Title = title.Trim();
+        Author = author.Trim();
     }
 
     public void MarkAsBorrowed()

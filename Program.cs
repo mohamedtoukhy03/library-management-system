@@ -2,22 +2,16 @@ using LibraryManagementSystem.Model;
 using LibraryManagementSystem.Repository;
 using LibraryManagementSystem.Service;
 using LibraryManagementSystem.UI;
-using LibraryManagementSystem.Validation;
 
 // Repositories
 IBookRepository bookRepo = new InMemoryBookRepository();
 IMemberRepository memberRepo = new InMemoryMemberRepository();
 ILoanRepository loanRepo = new InMemoryLoanRepository();
 
-// Validators
-IBookValidator bookValidator = new BookValidator();
-IMemberValidator memberValidator = new MemberValidator();
-IBorrowOperationValidator borrowValidator = new BorrowOperationValidator();
-
 // Services
-IBookService bookService = new BookService(bookRepo, bookValidator);
-IMemberService memberService = new MemberService(memberRepo, memberValidator);
-ILoanService loanService = new LoanService(bookRepo, memberRepo, loanRepo, borrowValidator);
+IBookService bookService = new BookService(bookRepo);
+IMemberService memberService = new MemberService(memberRepo);
+ILoanService loanService = new LoanService(bookRepo, memberRepo, loanRepo);
 
 // Initial data
 bookService.AddBook("Clean Code", "Uncle Bob");
