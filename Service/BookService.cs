@@ -8,11 +8,12 @@ public class BookService(IBookRepository repository) : IBookService
     private readonly IBookRepository _repository = repository;
     private int _nextBookId = 1;
 
-    public Book AddBook(string title, string author)
+    public string AddBook(string title, string author)
     {
         var book = new Book(_nextBookId++, title, author);
         _repository.Add(book);
-        return book;
+        return $"{book.Title} is successfully added";
+
     }
 
     public IReadOnlyList<Book> GetAllBooks() => _repository.GetAll();

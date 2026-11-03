@@ -7,6 +7,7 @@ public interface ILoanRepository
     void Add(Loan loan);
     Loan? GetActiveByBookId(int bookId);
     IReadOnlyList<Loan> GetActiveByMemberId(int memberId);
+    IReadOnlyCollection<Loan> GetActiveOverdueByMemberId(int memberId);
     IReadOnlyList<Loan> GetAllActive();
     IReadOnlyList<Loan> GetAllOverdue();
 }

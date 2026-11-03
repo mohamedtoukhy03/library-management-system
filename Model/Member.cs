@@ -2,9 +2,9 @@ namespace LibraryManagementSystem.Model;
 
 public class Member
 {
-    public int Id { get; init; }
-    public string Name { get; private set; }
-    public MemberType Type { get; private set; }
+    public int Id { get; set; }
+    public string Name { get; set; }
+    public MemberType Type { get; set; }
 
     public int MaxLoans => Type switch
     {
@@ -21,10 +21,5 @@ public class Member
         Id = id;
         Name = name.Trim();
         Type = type;
-    }
-
-    public void UpdateMembership(MemberType newType)
-    {
-        Type = newType;
     }
 }

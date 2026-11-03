@@ -16,7 +16,7 @@ public class ConsoleMenu(
     {
         while (true)
         {
-            Console.WriteLine("--- Library Management System ---");
+            Console.WriteLine("\n--- Library Management System ---");
             Console.WriteLine("1. Add Book");
             Console.WriteLine("2. List Books");
             Console.WriteLine("3. Search Books");
@@ -52,7 +52,7 @@ public class ConsoleMenu(
                 7 => ReturnBook,
                 8 => ListActiveLoansForMember,
                 9 => ListOverdueLoans,
-                _ => () => Console.WriteLine("Invalid option.")
+                _ => InvalidOption
             };
             action();
         }
@@ -68,8 +68,8 @@ public class ConsoleMenu(
 
         try
         {
-            var book = _bookService.AddBook(title, author);
-            Console.WriteLine($"Book added: '{book.Title}' (ID: {book.Id}).");
+            var message = _bookService.AddBook(title, author);
+            Console.WriteLine(message);
         }
         catch (Exception ex)
         {
@@ -88,7 +88,7 @@ public class ConsoleMenu(
         Console.Write("Enter search keyword (title or author): ");
         string term = Console.ReadLine() ?? "";
         var results = _bookService.SearchBooks(term);
-        Console.WriteLine($"Found {results.Count} matching book:");
+        Console.WriteLine($"Found {results.Count} matching book(s):");
         PrintBooks(results);
     }
 
@@ -115,8 +115,8 @@ public class ConsoleMenu(
 
         try
         {
-            var member = _memberService.RegisterMember(name, MemberType.Regular);
-            Console.WriteLine($"Member registered: {member.Name} (ID: {member.Id}).");
+            var message = _memberService.RegisterMember(name, MemberType.Regular);
+            Console.WriteLine(message);
         }
         catch (Exception ex)
         {
@@ -135,7 +135,7 @@ public class ConsoleMenu(
         }
 
         foreach (var member in members)
-            Console.WriteLine($"[{member.Id}] {member.Name}");
+            Console.WriteLine($"[{member.Id}] {member.Name} ({member.Type})");
     }
 
     private void BorrowBook()
@@ -155,17 +155,16 @@ public class ConsoleMenu(
         }
 
         Console.WriteLine("Available Books:");
-        foreach (var book in books)
-            Console.WriteLine($"[{book.Id}] {book.Title} by {book.Author}");
+        for (int i = 0; i < books.Count; i++)
+            Console.WriteLine($"{i + 1}. {books[i].Title} by {books[i].Author} (ID: {books[i].Id})");
 
-        Console.Write("Enter Book ID to borrow (0 to cancel): ");
-        if (!int.TryParse(Console.ReadLine(), out int bookId) || bookId <= 0)
+        Console.Write($"Select (1-{books.Count}, 0 to cancel): ");
+        if (!int.TryParse(Console.ReadLine(), out int pick) || pick <= 0 || pick > books.Count)
             return;
 
-        if (_loanService.TryBorrowBook(member.Id, bookId, out string message))
-            Console.WriteLine(message);
-        else
-            Console.WriteLine($"Failed: {message}");
+        int bookId = books[pick - 1].Id;
+        var message = _loanService.TryBorrowBook(member.Id, bookId);
+        Console.WriteLine(message);
     }
 
     private void ReturnBook()
@@ -193,10 +192,8 @@ public class ConsoleMenu(
             return;
 
         int bookId = loans[pick - 1].BookId;
-        if (_loanService.TryReturnBook(bookId, out string message))
-            Console.WriteLine(message);
-        else
-            Console.WriteLine($"Failed: {message}");
+        var message = _loanService.TryReturnBook(bookId);
+        Console.WriteLine(message);
     }
 
     private void ListActiveLoansForMember()
@@ -235,7 +232,7 @@ public class ConsoleMenu(
         {
             var book = _bookService.GetBookById(loan.BookId);
             var member = _memberService.GetMemberById(loan.MemberId);
-            int days = (DateTime.Today - loan.DueDate.Date).Days;
+            int days = DateOnly.FromDateTime(DateTime.Today).DayNumber - loan.DueDate.DayNumber;
             Console.WriteLine($"- '{book?.Title}' borrowed by {member?.Name} (Due: {loan.DueDate:yyyy-MM-dd}, {days} days late)");
         }
     }
@@ -258,5 +255,10 @@ public class ConsoleMenu(
             return null;
 
         return members[pick - 1];
+    }
+
+    private static void InvalidOption()
+    {
+        Console.WriteLine("Invalid option.");
     }
 }

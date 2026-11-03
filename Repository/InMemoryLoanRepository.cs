@@ -22,6 +22,14 @@ public class InMemoryLoanRepository : ILoanRepository
             .AsReadOnly();
     }
 
+    public IReadOnlyCollection<Loan> GetActiveOverdueByMemberId(int memberId)
+    {
+        return _loans
+            .Where(loan => !loan.IsReturned && loan.MemberId == memberId && loan.IsOverdue)
+            .ToList()
+            .AsReadOnly();
+    }
+
     public IReadOnlyList<Loan> GetAllActive()
     {
         return _loans

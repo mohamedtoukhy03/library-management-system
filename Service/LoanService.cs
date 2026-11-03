@@ -13,81 +13,51 @@ public class LoanService(
     private readonly ILoanRepository _loanRepo = loanRepository;
     private int _nextLoanId = 1;
 
-    public bool TryBorrowBook(int memberId, int bookId, out string message)
+    public string TryBorrowBook(int memberId, int bookId)
     {
         var member = _memberRepo.GetById(memberId);
         if (member == null)
-        {
-            message = "Member not found.";
-            return false;
-        }
+            return "Member not found.";
 
         var book = _bookRepo.GetById(bookId);
         if (book == null)
-        {
-            message = "Book not found.";
-            return false;
-        }
+            return "Book not found.";
 
-        if (!CanBorrow(member, book, out message))
-            return false;
+        if (!book.IsAvailable)
+            return $"'{book.Title}' is already borrowed.";
 
-        var loan = new Loan(_nextLoanId++, book.Id, member.Id, DateTime.Now);
-        book.MarkAsBorrowed();
+        var memberOverdueActiveLoans = _loanRepo.GetActiveOverdueByMemberId(memberId);
+        var memberActiveLoans = _loanRepo.GetActiveByMemberId(memberId);
+
+        if (memberOverdueActiveLoans.Count >= 1)
+            return $"Borrowing rejected: {member.Name} currently has overdue book.";
+
+        if (memberActiveLoans.Count >= member.MaxLoans)
+            return $"Borrowing rejected: {member.Name} has reached the limit of {member.MaxLoans} active loans.";
+
+        var loan = new Loan(_nextLoanId++, book.Id, member.Id, DateOnly.FromDateTime(DateTime.Today));
+        book.IsAvailable = false;
         _loanRepo.Add(loan);
 
-        message = $"'{book.Title}' successfully borrowed by {member.Name}! Due date: {loan.DueDate:yyyy-MM-dd}.";
-        return true;
+        return $"'{book.Title}' successfully borrowed by {member.Name}! Due date: {loan.DueDate:yyyy-MM-dd}.";
     }
 
-    private bool CanBorrow(Member member, Book book, out string reason)
-    {
-        if (!book.IsAvailable)
-        {
-            reason = $"'{book.Title}' is already borrowed.";
-            return false;
-        }
+ 
 
-        var memberActiveLoans = _loanRepo.GetActiveByMemberId(member.Id);
-
-        if (memberActiveLoans.Any(loan => loan.IsOverdue))
-        {
-            reason = $"Borrowing rejected: {member.Name} currently has overdue book.";
-            return false;
-        }
-
-        int activeCount = memberActiveLoans.Count(loan => !loan.IsReturned);
-        if (activeCount >= member.MaxLoans)
-        {
-            reason = $"Borrowing rejected: {member.Name} has reached the limit of {member.MaxLoans} active loans.";
-            return false;
-        }
-
-        reason = string.Empty;
-        return true;
-    }
-
-    public bool TryReturnBook(int bookId, out string message)
+    public string TryReturnBook(int bookId)
     {
         var loan = _loanRepo.GetActiveByBookId(bookId);
         if (loan == null)
-        {
-            message = "No active loan found for this book.";
-            return false;
-        }
+            return "No active loan found for this book.";
 
         var book = _bookRepo.GetById(bookId);
         if (book == null)
-        {
-            message = "Book record not found.";
-            return false;
-        }
+            return "Book record not found.";
 
-        loan.SetReturnDate();
-        book.MarkAsReturned();
+        loan.ReturnDate = DateTime.Now;
+        book.IsAvailable = true;
 
-        message = $"'{book.Title}' successfully returned and marked as available.";
-        return true;
+        return $"'{book.Title}' successfully returned and marked as available.";
     }
 
     public IReadOnlyList<Loan> GetActiveLoansForMember(int memberId) => _loanRepo.GetActiveByMemberId(memberId);

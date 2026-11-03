@@ -4,7 +4,7 @@ using LibraryManagementSystem.Model;
 
 public interface IBookService
 {
-    Book AddBook(string title, string author);
+    string AddBook(string title, string author);
     IReadOnlyList<Book> GetAllBooks();
     IReadOnlyList<Book> GetAvailableBooks();
     Book? GetBookById(int id);
